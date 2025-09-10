@@ -257,11 +257,11 @@ class Reseller(Database.BASE):
 class ResellerPrice(Database.BASE):
     __tablename__ = 'reseller_prices'
     id = Column(Integer, primary_key=True)
-    reseller_id = Column(BigInteger, ForeignKey('resellers.user_id'), nullable=False)
+    reseller_id = Column(BigInteger, ForeignKey('resellers.user_id'), nullable=True)
     item_name = Column(String(100), ForeignKey('goods.name'), nullable=False)
     price = Column(BigInteger, nullable=False)
 
-    def __init__(self, reseller_id: int, item_name: str, price: int):
+    def __init__(self, reseller_id: int | None, item_name: str, price: int):
         self.reseller_id = reseller_id
         self.item_name = item_name
         self.price = price
