@@ -88,7 +88,8 @@ async def reseller_remove_select(call: CallbackQuery):
     markup.add(InlineKeyboardButton('✅ Taip', callback_data=f'reseller_remove_confirm_{rid}'))
     markup.add(InlineKeyboardButton('🔙 Ne', callback_data='reseller_remove'))
     name = f'@{user.username}' if user and user.username else str(rid)
-    await bot.edit_message_text(f'Ar tikrai pašalinti {name}?',
+    await bot.edit_message_text(
+        f'Ar tikrai pašalinti {name} iš resellerių sąrašo?',
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
                                 reply_markup=markup)
@@ -98,10 +99,11 @@ async def reseller_remove_confirm(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     rid = int(call.data[len('reseller_remove_confirm_'):])
     delete_reseller(rid)
-    await bot.edit_message_text('✅ Reselleris pašalintas',
-                                chat_id=call.message.chat.id,
-                                message_id=call.message.message_id,
-                                reply_markup=back('resellers_management'))
+    await bot.edit_message_text(
+        '✅ Reselleris pašalintas. Jam nebetaikoma resellerio kaina',
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=back('resellers_management'))
 
 
 async def reseller_price_callback(call: CallbackQuery):
