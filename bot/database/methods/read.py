@@ -181,9 +181,9 @@ def get_item_info(item_name: str, user_id: int | None = None) -> dict | None:
     if not result:
         return None
     data = result.__dict__.copy()
-    if user_id is not None:
+    if user_id is not None and is_reseller(user_id):
         price = session.query(ResellerPrice.price).filter_by(
-            reseller_id=user_id, item_name=item_name
+            reseller_id=None, item_name=item_name
         ).first()
         if price:
             data['price'] = price[0]

@@ -1,5 +1,15 @@
 import datetime
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Text, Boolean, VARCHAR
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    BigInteger,
+    ForeignKey,
+    Text,
+    Boolean,
+    VARCHAR,
+    inspect,
+)
 from bot.database.main import Database
 from sqlalchemy.orm import relationship
 
@@ -257,11 +267,11 @@ class Reseller(Database.BASE):
 class ResellerPrice(Database.BASE):
     __tablename__ = 'reseller_prices'
     id = Column(Integer, primary_key=True)
-    reseller_id = Column(BigInteger, ForeignKey('resellers.user_id'), nullable=False)
+    reseller_id = Column(BigInteger, ForeignKey('resellers.user_id'), nullable=True)
     item_name = Column(String(100), ForeignKey('goods.name'), nullable=False)
     price = Column(BigInteger, nullable=False)
 
-    def __init__(self, reseller_id: int, item_name: str, price: int):
+    def __init__(self, reseller_id: int | None, item_name: str, price: int):
         self.reseller_id = reseller_id
         self.item_name = item_name
         self.price = price
@@ -279,5 +289,12 @@ class StockNotification(Database.BASE):
 
 
 def register_models():
-    Database.BASE.metadata.create_all(Database().engine)
+    engine = Database().engine
+    inspector = inspect(engine)
+    if 'reseller_prices' in inspector.get_table_names():
+        for column in inspector.get_columns('reseller_prices'):
+            if column['name'] == 'reseller_id' and not column['nullable']:
+                ResellerPrice.__table__.drop(engine)
+                break
+    Database.BASE.metadata.create_all(engine)
     Role.insert_roles()

@@ -88,7 +88,7 @@ def update_promocode(code: str, discount: int | None = None, expires_at: str | N
     Database().session.commit()
 
 
-def set_reseller_price(reseller_id: int, item_name: str, price: int) -> None:
+def set_reseller_price(reseller_id: int | None, item_name: str, price: int) -> None:
     session = Database().session
     entry = session.query(ResellerPrice).filter_by(
         reseller_id=reseller_id, item_name=item_name

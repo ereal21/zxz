@@ -88,7 +88,8 @@ async def reseller_remove_select(call: CallbackQuery):
     markup.add(InlineKeyboardButton('✅ Taip', callback_data=f'reseller_remove_confirm_{rid}'))
     markup.add(InlineKeyboardButton('🔙 Ne', callback_data='reseller_remove'))
     name = f'@{user.username}' if user and user.username else str(rid)
-    await bot.edit_message_text(f'Ar tikrai pašalinti {name}?',
+    await bot.edit_message_text(
+        f'Ar tikrai pašalinti {name} iš resellerių sąrašo?',
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
                                 reply_markup=markup)
@@ -98,36 +99,26 @@ async def reseller_remove_confirm(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     rid = int(call.data[len('reseller_remove_confirm_'):])
     delete_reseller(rid)
-    await bot.edit_message_text('✅ Reselleris pašalintas',
-                                chat_id=call.message.chat.id,
-                                message_id=call.message.message_id,
-                                reply_markup=back('resellers_management'))
+    await bot.edit_message_text(
+        '✅ Reselleris pašalintas. Jam nebetaikoma resellerio kaina',
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=back('resellers_management'))
 
 
 async def reseller_price_callback(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
-    res = get_resellers()
-    if not res:
+    if not get_resellers():
         await bot.edit_message_text('❌ Nėra resellerių',
                                     chat_id=call.message.chat.id,
                                     message_id=call.message.message_id,
                                     reply_markup=back('resellers_management'))
         return
-    await bot.edit_message_text('Pasirinkite resellerį:',
-                                chat_id=call.message.chat.id,
-                                message_id=call.message.message_id,
-                                reply_markup=resellers_list(res, 'reseller_price_res', 'resellers_management'))
-
-
-async def reseller_price_reseller(call: CallbackQuery):
-    bot, user_id = await get_bot_user_ids(call)
-    rid = int(call.data[len('reseller_price_res_'):])
-    TgConfig.STATE[f'{user_id}_reseller'] = rid
     mains = get_all_category_names()
     markup = InlineKeyboardMarkup()
     for main in mains:
         markup.add(InlineKeyboardButton(main, callback_data=f'reseller_price_main_{main}'))
-    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='reseller_prices'))
+    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='resellers_management'))
     await bot.edit_message_text('Pasirinkite pagrindinę kategoriją:',
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
@@ -137,13 +128,12 @@ async def reseller_price_reseller(call: CallbackQuery):
 async def reseller_price_main(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     main = call.data[len('reseller_price_main_'):]
-    rid = TgConfig.STATE.get(f'{user_id}_reseller')
     categories = get_all_subcategories(main)
     if categories:
         markup = InlineKeyboardMarkup()
         for cat in categories:
             markup.add(InlineKeyboardButton(cat, callback_data=f'reseller_price_cat_{cat}'))
-        markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data=f'reseller_price_res_{rid}'))
+        markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='reseller_prices'))
         await bot.edit_message_text('Pasirinkite kategoriją:',
                                     chat_id=call.message.chat.id,
                                     message_id=call.message.message_id,
@@ -154,12 +144,12 @@ async def reseller_price_main(call: CallbackQuery):
         await bot.edit_message_text('❌ Šioje kategorijoje nėra prekių',
                                     chat_id=call.message.chat.id,
                                     message_id=call.message.message_id,
-                                    reply_markup=back(f'reseller_price_res_{rid}'))
+                                    reply_markup=back('reseller_prices'))
         return
     markup = InlineKeyboardMarkup()
     for item in items:
         markup.add(InlineKeyboardButton(display_name(item), callback_data=f'reseller_price_item_{item}'))
-    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data=f'reseller_price_res_{rid}'))
+    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='reseller_prices'))
     await bot.edit_message_text('Pasirinkite prekę:',
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
@@ -169,7 +159,6 @@ async def reseller_price_main(call: CallbackQuery):
 async def reseller_price_cat(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     category = call.data[len('reseller_price_cat_'):]
-    rid = TgConfig.STATE.get(f'{user_id}_reseller')
     subs = get_all_subcategories(category)
     if subs:
         markup = InlineKeyboardMarkup()
@@ -204,7 +193,6 @@ async def reseller_price_cat(call: CallbackQuery):
 async def reseller_price_sub(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     sub = call.data[len('reseller_price_sub_'):]
-    rid = TgConfig.STATE.get(f'{user_id}_reseller')
     items = get_all_item_names(sub)
     if not items:
         parent = get_category_parent(sub)
@@ -227,14 +215,13 @@ async def reseller_price_sub(call: CallbackQuery):
 async def reseller_price_item(call: CallbackQuery):
     bot, user_id = await get_bot_user_ids(call)
     item = call.data[len('reseller_price_item_'):]
-    rid = TgConfig.STATE.get(f'{user_id}_reseller')
     TgConfig.STATE[user_id] = 'reseller_price_wait'
     TgConfig.STATE[f'{user_id}_item'] = item
     TgConfig.STATE[f'{user_id}_message_id'] = call.message.message_id
     await bot.edit_message_text('Įveskite kainą:',
                                 chat_id=call.message.chat.id,
                                 message_id=call.message.message_id,
-                                reply_markup=back(f'reseller_price_res_{rid}'))
+                                reply_markup=back('reseller_prices'))
 
 
 async def reseller_price_receive(message: Message):
@@ -242,7 +229,6 @@ async def reseller_price_receive(message: Message):
     if TgConfig.STATE.get(user_id) != 'reseller_price_wait':
         return
     price_text = message.text.strip()
-    rid = TgConfig.STATE.get(f'{user_id}_reseller')
     item = TgConfig.STATE.get(f'{user_id}_item')
     message_id = TgConfig.STATE.get(f'{user_id}_message_id')
     await bot.delete_message(chat_id=message.chat.id, message_id=message.message_id)
@@ -250,14 +236,14 @@ async def reseller_price_receive(message: Message):
         await bot.edit_message_text('⚠️ Neteisinga kaina',
                                     chat_id=message.chat.id,
                                     message_id=message_id,
-                                    reply_markup=back(f'reseller_price_res_{rid}'))
+                                    reply_markup=back('reseller_prices'))
         return
-    set_reseller_price(rid, item, int(price_text))
+    set_reseller_price(None, item, int(price_text))
     mains = get_all_category_names()
     markup = InlineKeyboardMarkup()
     for main in mains:
         markup.add(InlineKeyboardButton(main, callback_data=f'reseller_price_main_{main}'))
-    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='reseller_prices'))
+    markup.add(InlineKeyboardButton('🔙 Grįžti atgal', callback_data='resellers_management'))
     TgConfig.STATE[user_id] = None
     await bot.edit_message_text('✅ Kaina nustatyta. Pasirinkite pagrindinę kategoriją:',
                                 chat_id=message.chat.id,
@@ -278,8 +264,6 @@ def register_reseller_management(dp: Dispatcher) -> None:
                                        lambda c: c.data.startswith('reseller_remove_confirm_'))
     dp.register_callback_query_handler(reseller_price_callback,
                                        lambda c: c.data == 'reseller_prices')
-    dp.register_callback_query_handler(reseller_price_reseller,
-                                       lambda c: c.data.startswith('reseller_price_res_'))
     dp.register_callback_query_handler(reseller_price_main,
                                        lambda c: c.data.startswith('reseller_price_main_'))
     dp.register_callback_query_handler(reseller_price_cat,
