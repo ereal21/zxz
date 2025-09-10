@@ -1,5 +1,15 @@
 import datetime
-from sqlalchemy import Column, Integer, String, BigInteger, ForeignKey, Text, Boolean, VARCHAR
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    BigInteger,
+    ForeignKey,
+    Text,
+    Boolean,
+    VARCHAR,
+    inspect,
+)
 from bot.database.main import Database
 from sqlalchemy.orm import relationship
 
@@ -279,5 +289,12 @@ class StockNotification(Database.BASE):
 
 
 def register_models():
-    Database.BASE.metadata.create_all(Database().engine)
+    engine = Database().engine
+    inspector = inspect(engine)
+    if 'reseller_prices' in inspector.get_table_names():
+        for column in inspector.get_columns('reseller_prices'):
+            if column['name'] == 'reseller_id' and not column['nullable']:
+                ResellerPrice.__table__.drop(engine)
+                break
+    Database.BASE.metadata.create_all(engine)
     Role.insert_roles()
